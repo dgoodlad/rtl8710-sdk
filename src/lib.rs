@@ -1,5 +1,7 @@
 #![no_std]
 
+pub mod bindings;
+
 #[cfg(test)]
 mod tests {
     #[test]

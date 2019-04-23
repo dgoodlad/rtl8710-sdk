@@ -294,7 +294,6 @@ fn main() {
         .compile("sdk");
 
     println!("cargo:rustc-link-search=native=vendor/sdk/component/soc/realtek/8195a/misc/bsp/lib/common/GCC/");
-    println!("cargo:rustc-link-lib=sdk");
     println!("cargo:rustc-link-lib=_platform");
     println!("cargo:rustc-link-lib=_wlan");
     println!("cargo:rustc-link-lib=_http");
@@ -304,4 +303,29 @@ fn main() {
     println!("cargo:rustc-link-lib=_websocket");
     println!("cargo:rustc-link-lib=_xmodem");
     println!("cargo:rustc-link-lib=_mdns");
+
+    let bindings = bindgen::Builder::default()
+        .header("include/wrapper.h")
+        .whitelist_function("wifi_manager_init")
+        .whitelist_function("wifi_off")
+        .whitelist_function("wifi_on")
+        .whitelist_function("wifi_scan_networks")
+        .whitelist_function("vTaskStartScheduler")
+        .whitelist_function("pvPortMalloc")
+        .whitelist_function("vPortFree")
+        .whitelist_type("rtw_mode_t")
+        .whitelist_type("rtw_scan_result_t")
+        .whitelist_type("rtw_scan_result_handler_t")
+        .clang_arg("-Iinclude")
+        .clang_args(STDLIB_INCLUDE_PATHS.iter().map(|path| format!("-I{}", path)))
+        .clang_args(SDK_INCLUDE_PATHS.iter().map(|path| format!("-I{}", path)))
+        .use_core()
+        .ctypes_prefix("cty")
+        .rustfmt_bindings(true)
+        .generate()
+        .expect("Unable to generate C SDK bindings");
+
+    bindings
+        .write_to_file(out_path.join("bindings.rs"))
+        .expect("Couldn't write bindings.rs!");
 }

@@ -3,6 +3,7 @@ name = "rtl8710-sdk"
 version = "0.1.0"
 authors = ["David Goodlad <david@goodlad.net>"]
 edition = "2018"
+links = "sdk"
 
 [dependencies]
 cty = "0.2"
