@@ -1,12 +1,15 @@
 extern crate bindgen;
 extern crate cc;
+extern crate glob;
 extern crate llvm_tools;
 
+use glob::glob;
+use llvm_tools::LlvmTools;
 use std::env;
+use std::fmt;
+use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
-
-use llvm_tools::LlvmTools;
 
 const STDLIB_INCLUDE_PATHS: &[&'static str] = &[
     "/usr/lib/gcc/arm-none-eabi/5.4.1/include",
@@ -239,14 +242,44 @@ const SDK_C_FILES: &[&'static str] = &[
     "vendor/sdk/component/common/utilities/xml.c",
 ];
 
+const SDK_STATIC_LIBS: &[&'static str] = &[
+    "platform",
+    "wlan",
+    "http",
+    "dct",
+    "wps",
+    "rtlstd",
+    "websocket",
+    "xmodem",
+    "mdns"
+];
+
 fn main() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let sdk_staticlib_path = PathBuf::from("vendor/sdk/component/soc/realtek/8195a/misc/bsp/lib/common/GCC").canonicalize().unwrap();
 
     let tools = LlvmTools::new().unwrap();
     let objcopy = match tools.tool("llvm-objcopy") {
         Some(path) => path,
         None => panic!("Couldn't find objcopy"),
     };
+
+    for lib_name in SDK_STATIC_LIBS.iter() {
+        fs::create_dir_all(out_path.join("static").join(lib_name)).expect("Could not create directory");
+
+        Command::new("ar")
+            .arg("x")
+            .arg(sdk_staticlib_path.join(format!("lib_{}.a", lib_name)).to_str().unwrap())
+            .current_dir(out_path.join("static").join(lib_name))
+            .status().unwrap();
+    }
+
+    let sdk_static_lib_object_paths = glob(out_path.join("static/**/*.o").to_str().unwrap()).unwrap().into_iter().filter_map(|entry| {
+        match entry {
+            Ok(path) => Some(path),
+            Err(_) => None,
+        }
+    }).collect::<Vec<_>>();
 
     Command::new(objcopy)
         .args(&["--rename-section", ".data=.loader.data,contents,alloc,load,readonly,data"])
@@ -287,22 +320,16 @@ fn main() {
         compiler.include(path);
     }
 
+    for path in sdk_static_lib_object_paths {
+        compiler.object(path);
+    }
+
     compiler
         .object(out_path.join("ram_1.r.o"))
+        .object("vendor/sdk/component/soc/realtek/8195a/misc/bsp/lib/common/GCC/lib_wlan.a")
         .files(SDK_C_FILES)
         .file("src/freertos_rs.c")
         .compile("sdk");
-
-    println!("cargo:rustc-link-search=native=vendor/sdk/component/soc/realtek/8195a/misc/bsp/lib/common/GCC/");
-    println!("cargo:rustc-link-lib=_platform");
-    println!("cargo:rustc-link-lib=_wlan");
-    println!("cargo:rustc-link-lib=_http");
-    println!("cargo:rustc-link-lib=_dct");
-    println!("cargo:rustc-link-lib=_wps");
-    println!("cargo:rustc-link-lib=_rtlstd");
-    println!("cargo:rustc-link-lib=_websocket");
-    println!("cargo:rustc-link-lib=_xmodem");
-    println!("cargo:rustc-link-lib=_mdns");
 
     let bindings = bindgen::Builder::default()
         .header("include/wrapper.h")
