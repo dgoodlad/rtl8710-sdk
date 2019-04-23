@@ -1,7 +1,6 @@
-
-
 #include "cmsis_os.h"
 #include "diag.h"
+#include "rtl8195a.h"
 
 #define CMSIS_OS_ERR(fmt, args...)          DBG_8195A("\n\r%s: " fmt, __FUNCTION__, ## args)
 
