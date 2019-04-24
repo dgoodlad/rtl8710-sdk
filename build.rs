@@ -6,7 +6,6 @@ extern crate llvm_tools;
 use glob::glob;
 use llvm_tools::LlvmTools;
 use std::env;
-use std::fmt;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -333,6 +332,8 @@ fn main() {
 
     let bindings = bindgen::Builder::default()
         .header("include/wrapper.h")
+        .whitelist_function("log_uart_init")
+        .whitelist_function("console_init")
         .whitelist_function("wifi_manager_init")
         .whitelist_function("wifi_off")
         .whitelist_function("wifi_on")

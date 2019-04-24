@@ -5,3 +5,5 @@
 #include "task.h"
 
 #include "wifi_conf.h"
+
+extern void console_init(void);
