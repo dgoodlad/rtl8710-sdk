@@ -33,6 +33,7 @@ This is very much WIP, so not easy to describe. The gist looks like this:
 2. Add `rtl8710-sdk` as a dependency
 3. Configure cargo to link properly in `.cargo/config`:
 
+    ``` toml
     [target.thumbv7m-none-eabi]
     runner = 'gdb-multiarch'
     rustflags = [
@@ -43,6 +44,7 @@ This is very much WIP, so not easy to describe. The gist looks like this:
     
     [build]
     target = "thumbv7m-none-eabi"
+    ```
 
 You'll need a linker script (`link.x`) derived from the
 `rlx8195A-symbol-v02-img2.ld` script in the SDK. That's up to you for now.
